@@ -146,10 +146,11 @@ global with sharing class Logger {
   }
 
   // System info methods
-
+  
   /**
    * @description Returns the current version number of Nebula Logger
    * @return The current version number, in the format `v0.0.0`
+   * @example Logger.getVersionNumber()
    */
   global static String getVersionNumber() {
     return CURRENT_VERSION_NUMBER;
