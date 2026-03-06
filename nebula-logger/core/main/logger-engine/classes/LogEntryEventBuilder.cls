@@ -460,8 +460,11 @@ global with sharing class LogEntryEventBuilder {
       this.logEntryEvent.RecordSObjectClassification__c = 'Unknown';
       this.logEntryEvent.RecordSObjectType__c = 'Unknown';
     } else {
-      this.logEntryEvent.RecordId__c = record.Id;
-      this.logEntryEvent.RecordSObjectClassification__c = getSObjectClassification(record.getSObjectType());
+      Schema.SObjectType recordSObjectType = record.getSObjectType();
+      if (recordSObjectType.getDescribe().fields.getMap().containsKey('Id')) {
+        this.logEntryEvent.RecordId__c = (Id) record.get('Id');
+      }
+      this.logEntryEvent.RecordSObjectClassification__c = getSObjectClassification(recordSObjectType);
       this.logEntryEvent.RecordSObjectType__c = record.getSObjectType().toString();
       this.logEntryEvent.RecordSObjectTypeNamespace__c = getSObjectTypeNamespace(record.getSObjectType());
     }
@@ -995,6 +998,8 @@ global with sharing class LogEntryEventBuilder {
 
     if (LoggerParameter.STORE_TRANSACTION_LIMITS) {
       logEntryEventTemplate.LimitsAggregateQueriesMax__c = CACHED_TRANSACTION_LIMITS.aggregateQueriesMax;
+      logEntryEventTemplate.LimitsApexCursorFetchCallsMax__c = CACHED_TRANSACTION_LIMITS.apexCursorFetchCallsMax;
+      logEntryEventTemplate.LimitsApexCursorRowsMax__c = CACHED_TRANSACTION_LIMITS.apexCursorRowsMax;
       logEntryEventTemplate.LimitsAsyncCallsMax__c = CACHED_TRANSACTION_LIMITS.asyncCallsMax;
       logEntryEventTemplate.LimitsCalloutsMax__c = CACHED_TRANSACTION_LIMITS.calloutsMax;
       logEntryEventTemplate.LimitsCpuTimeMax__c = CACHED_TRANSACTION_LIMITS.cpuTimeMax;
@@ -1012,6 +1017,8 @@ global with sharing class LogEntryEventBuilder {
       logEntryEventTemplate.LimitsSoslSearchesMax__c = CACHED_TRANSACTION_LIMITS.soslSearchesMax;
 
       logEntryEventTemplate.LimitsAggregateQueriesUsed__c = System.Limits.getAggregateQueries();
+      logEntryEventTemplate.LimitsApexCursorFetchCallsUsed__c = System.Limits.getFetchCallsOnApexCursor();
+      logEntryEventTemplate.LimitsApexCursorRowsUsed__c = System.Limits.getApexCursorRows();
       logEntryEventTemplate.LimitsAsyncCallsUsed__c = System.Limits.getAsyncCalls();
       logEntryEventTemplate.LimitsCalloutsUsed__c = System.Limits.getCallouts();
       logEntryEventTemplate.LimitsCpuTimeUsed__c = System.Limits.getCpuTime();
@@ -1020,8 +1027,8 @@ global with sharing class LogEntryEventBuilder {
       logEntryEventTemplate.LimitsEmailInvocationsUsed__c = System.Limits.getEmailInvocations();
       logEntryEventTemplate.LimitsFutureCallsUsed__c = System.Limits.getFutureCalls();
       logEntryEventTemplate.LimitsMobilePushApexCallsUsed__c = System.Limits.getMobilePushApexCalls();
-      logEntryEventTemplate.LimitsQueueableJobsUsed__c = System.Limits.getQueueableJobs();
       logEntryEventTemplate.LimitsPublishImmediateDmlStatementsUsed__c = System.Limits.getPublishImmediateDML();
+      logEntryEventTemplate.LimitsQueueableJobsUsed__c = System.Limits.getQueueableJobs();
       logEntryEventTemplate.LimitsSoqlQueriesUsed__c = System.Limits.getQueries();
       logEntryEventTemplate.LimitsSoqlQueryLocatorRowsUsed__c = System.Limits.getQueryLocatorRows();
       logEntryEventTemplate.LimitsSoqlQueryRowsUsed__c = System.Limits.getQueryRows();
@@ -1403,6 +1410,8 @@ global with sharing class LogEntryEventBuilder {
   @SuppressWarnings('PMD.ApexDoc, PMD.TooManyFields')
   private class TransactionLimits {
     public final Integer aggregateQueriesMax = System.Limits.getLimitAggregateQueries();
+    public final Integer apexCursorFetchCallsMax = System.Limits.getLimitFetchCallsOnApexCursor();
+    public final Integer apexCursorRowsMax = System.Limits.getLimitApexCursorRows();
     public final Integer asyncCallsMax = System.Limits.getLimitAsyncCalls();
     public final Integer calloutsMax = System.Limits.getLimitCallouts();
     public final Integer cpuTimeMax = System.Limits.getLimitCpuTime();
