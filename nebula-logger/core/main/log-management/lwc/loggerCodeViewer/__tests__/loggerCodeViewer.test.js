@@ -237,4 +237,28 @@ describe('c-logger-code-viewer', () => {
     // Prism.highlightAll is gated by the same isLoaded short-circuit, so it should not run again.
     expect(global.Prism.highlightAll).toHaveBeenCalledTimes(1);
   });
+  it('renders successfully when replaceChildren is unavailable (Lightning Locker)', async () => {
+    // Issue #1034: under Lightning Locker, secured elements do not implement
+    // replaceChildren(), causing 'replaceChildren is not a function' errors.
+    // Simulate that environment to guard against reintroducing the unsupported API.
+    const originalReplaceChildren = Element.prototype.replaceChildren;
+    Element.prototype.replaceChildren = () => {
+      throw new TypeError('replaceChildren is not a function');
+    };
+    try {
+      const element = createElement('c-logger-code-viewer', { is: LoggerCodeViewer });
+      element.code = 'some example code';
+      element.language = 'apex';
+      element.startingLineNumber = '1';
+      element.targetLineNumber = '1';
+      document.body.appendChild(element);
+      await flushPromises();
+      const prismCodeViewerPre = element.shadowRoot.querySelector('div.prism-viewer pre');
+      expect(prismCodeViewerPre).toBeTruthy();
+      expect(prismCodeViewerPre.querySelector('code').textContent).toContain('some example code');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    } finally {
+      Element.prototype.replaceChildren = originalReplaceChildren;
+    }
+  });
 });
