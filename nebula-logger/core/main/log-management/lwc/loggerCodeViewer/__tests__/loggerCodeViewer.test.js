@@ -75,6 +75,24 @@ describe('c-logger-code-viewer', () => {
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
+  it('renders code when replaceChildren is unavailable', async () => {
+    const element = createElement('c-logger-code-viewer', { is: LoggerCodeViewer });
+    element.code = 'System.debug("Locker");';
+    element.language = 'apex';
+    document.body.appendChild(element);
+
+    const container = element.shadowRoot.querySelector('div.prism-viewer');
+    container.appendChild(document.createElement('span'));
+    Object.defineProperty(container, 'replaceChildren', { value: undefined });
+    expect(container.replaceChildren).toBeUndefined();
+    await flushPromises();
+
+    expect(container.children).toHaveLength(1);
+    expect(container.querySelector('pre code').textContent).toBe(element.code);
+    expect(global.Prism.highlightAll).toHaveBeenCalledTimes(1);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
   it('preserves angle-bracketed generics and other HTML-significant characters in the rendered code', async () => {
     const element = createElement('c-logger-code-viewer', { is: LoggerCodeViewer });
     element.language = 'apex';
