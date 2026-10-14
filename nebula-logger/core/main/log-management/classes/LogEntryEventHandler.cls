@@ -141,6 +141,7 @@ public without sharing class LogEntryEventHandler extends LoggerSObjectHandler {
     // To avoid making a callout for every log for details retrieved from api.status.salesforce.com,
     // try to query recent logs first to see if there is a recent log with the details already populated
     Log__c recentLogWithApiReleaseDetails = LogManagementDataSelector.getInstance().getCachedRecentLogWithApiReleaseDetails();
+    Map<String, Id> transactionIdToExistingOwnerId = queryExistingLogOwnerIds(this.logEntryEvents);
 
     for (LogEntryEvent__e logEntryEvent : this.logEntryEvents) {
       // The LogEntryEvent__e object stores a denormalized version of Log__c & LogEntry__c data
@@ -225,6 +226,13 @@ public without sharing class LogEntryEventHandler extends LoggerSObjectHandler {
       }
 
       LoggerFieldMapper.mapFieldValues(logEntryEvent, log);
+      // Later platform-event batches for the same transaction upsert this log again.
+      // Keep the owner chosen on insert (default log owner, scenario assignment, or a manual
+      // change) instead of replacing it with the logging user. Applied after field mapping
+      // so a custom mapping cannot transfer ownership. See issue #1011.
+      if (transactionIdToExistingOwnerId.containsKey(log.TransactionId__c)) {
+        log.OwnerId = transactionIdToExistingOwnerId.get(log.TransactionId__c);
+      }
       log.setOptions(DML_OPTIONS);
       TRANSACTION_ID_TO_LOG.put(log.TransactionId__c, log);
     }
@@ -495,6 +503,26 @@ public without sharing class LogEntryEventHandler extends LoggerSObjectHandler {
         LoggerEmailSender.sendErrorEmail(tagAssignmentSObjectType, saveResults);
       }
     }
+  }
+
+  private Map<String, Id> queryExistingLogOwnerIds(List<LogEntryEvent__e> logEntryEvents) {
+    Map<String, Id> transactionIdToOwnerId = new Map<String, Id>();
+    List<String> transactionIds = new List<String>();
+    for (LogEntryEvent__e logEntryEvent : logEntryEvents) {
+      if (String.isNotBlank(logEntryEvent.TransactionId__c)) {
+        transactionIds.add(logEntryEvent.TransactionId__c);
+      }
+    }
+    if (transactionIds.isEmpty()) {
+      return transactionIdToOwnerId;
+    }
+
+    for (Log__c existingLog : LogManagementDataSelector.getInstance().getLogsByTransactionId(transactionIds)) {
+      if (existingLog.OwnerId != null) {
+        transactionIdToOwnerId.put(existingLog.TransactionId__c, existingLog.OwnerId);
+      }
+    }
+    return transactionIdToOwnerId;
   }
 
   private Id determineLogOwnerId(LogEntryEvent__e logEntryEvent) {

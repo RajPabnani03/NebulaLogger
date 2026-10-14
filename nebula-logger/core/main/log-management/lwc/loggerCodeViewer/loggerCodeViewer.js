@@ -90,7 +90,18 @@ export default class LoggerCodeViewer extends LightningElement {
     codeElement.classList.add(`language-${this.language}`);
     codeElement.textContent = this.code ?? '';
     preElement.appendChild(codeElement);
-    container.replaceChildren(preElement);
+    // Lightning Locker wraps DOM nodes in SecureElement, which does not implement
+    // ParentNode.replaceChildren() (used starting in v4.19.0). Orgs with Lightning
+    // Web Security disabled then throw "replaceChildren is not a function" and render
+    // a blank viewer. Fall back to removeChild/appendChild, which Locker supports.
+    if (typeof container.replaceChildren === 'function') {
+      container.replaceChildren(preElement);
+    } else {
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+      container.appendChild(preElement);
+    }
   }
 
   _serializeLoadFailure(failure) {

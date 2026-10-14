@@ -65,6 +65,7 @@
         <members>LoggerHomeHeaderController</members>
         <members>LoggerHomeHeaderController_Tests</members>
         <members>LoggerMockDataCreator</members>
+        <members>LoggerMockDataCreator_Tests</members>
         <members>LoggerMockDataStore</members>
         <members>LoggerParameter</members>
         <members>LoggerParameter_Tests</members>

@@ -675,6 +675,32 @@ private class LogEntryEventHandler_Tests {
   }
 
   @IsTest
+  static void it_should_preserve_existing_log_owner_when_additional_log_entries_are_saved() {
+    LoggerDataStore.setMock(LoggerMockDataStore.getEventBus());
+    LoggerTestConfigurator.setupMockSObjectHandlerConfigurations();
+    LoggerTestConfigurator.getSObjectHandlerConfiguration(Schema.Log__c.SObjectType).IsEnabled__c = false;
+    LoggerTestConfigurator.getSObjectHandlerConfiguration(Schema.LogEntry__c.SObjectType).IsEnabled__c = false;
+    Schema.User configuredLogOwner = LoggerMockDataCreator.createUser();
+    insert configuredLogOwner;
+    Schema.User currentUser = new Schema.User(Id = System.UserInfo.getUserId(), ProfileId = System.UserInfo.getProfileId());
+
+    System.runAs(currentUser) {
+      Log__c existingLog = new Log__c(LoggedBy__c = currentUser.Id, OwnerId = configuredLogOwner.Id, TransactionId__c = MOCK_TRANSACTION_ID);
+      insert existingLog;
+      LogEntryEvent__e logEntryEvent = createLogEntryEvent();
+      logEntryEvent.TransactionScenario__c = null;
+
+      LoggerMockDataStore.getEventBus().publishRecord(logEntryEvent);
+      LoggerMockDataStore.getEventBus().deliver(new LogEntryEventHandler());
+    }
+
+    Log__c log = getLog();
+    System.Assert.areEqual(configuredLogOwner.Id, log.OwnerId, 'Existing log owner should be kept when another log entry is saved for the same transaction');
+    System.Assert.areEqual(1, [SELECT COUNT() FROM Log__c WHERE TransactionId__c = :MOCK_TRANSACTION_ID]);
+    System.Assert.areEqual(1, [SELECT COUNT() FROM LogEntry__c WHERE Log__c = :log.Id]);
+  }
+
+  @IsTest
   static void it_should_query_and_set_auth_session_data_when_synchronous_querying_is_disabled() {
     LoggerDataStore.setMock(LoggerMockDataStore.getEventBus());
     LoggerTestConfigurator.setupMockSObjectHandlerConfigurations();

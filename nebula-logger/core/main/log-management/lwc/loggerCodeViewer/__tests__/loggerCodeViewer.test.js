@@ -47,6 +47,48 @@ describe('c-logger-code-viewer', () => {
     jest.clearAllMocks();
   });
 
+  it('renders code when replaceChildren is unavailable under Lightning Locker', async () => {
+    const prototypes = [Element.prototype, Node.prototype];
+    const originalReplaceChildren = prototypes.map(prototype => {
+      const original = prototype.replaceChildren;
+      if (original) {
+        delete prototype.replaceChildren;
+      }
+      return original;
+    });
+
+    try {
+      const probe = document.createElement('div');
+      expect(typeof probe.replaceChildren).not.toBe('function');
+
+      const element = createElement('c-logger-code-viewer', { is: LoggerCodeViewer });
+      element.language = 'apex';
+      element.startingLineNumber = '4';
+      element.targetLineNumber = '4';
+      element.code = 'System.debug(List<Account>.class);';
+
+      document.body.appendChild(element);
+      await flushPromises();
+
+      const prismCodeViewerPre = element.shadowRoot.querySelector('div.prism-viewer pre');
+      expect(prismCodeViewerPre).toBeTruthy();
+      expect(prismCodeViewerPre.classList.contains('line-numbers')).toBeTruthy();
+      expect(prismCodeViewerPre.dataset.start).toBe(element.startingLineNumber);
+      expect(prismCodeViewerPre.dataset.line).toBe(element.targetLineNumber);
+      const renderedCode = prismCodeViewerPre.querySelector('code');
+      expect(renderedCode).toBeTruthy();
+      expect(renderedCode.textContent).toBe(element.code);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(global.Prism.highlightAll).toHaveBeenCalled();
+    } finally {
+      prototypes.forEach((prototype, index) => {
+        if (originalReplaceChildren[index]) {
+          prototype.replaceChildren = originalReplaceChildren[index];
+        }
+      });
+    }
+  });
+
   it('displays Prism code viewer with provided attributes', async () => {
     const element = createElement('c-logger-code-viewer', { is: LoggerCodeViewer });
     element.language = 'apex';

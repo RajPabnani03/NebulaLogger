@@ -375,6 +375,10 @@ private class LogManagementDataSelector_Tests {
     List<Log__c> returnedResults = LogManagementDataSelector.getInstance().getLogsByTransactionId(logTransactionIds);
 
     System.Assert.areEqual(logs.size(), returnedResults.size());
+    for (Log__c returnedLog : returnedResults) {
+      System.Assert.areEqual(System.UserInfo.getUserId(), returnedLog.OwnerId);
+      System.Assert.isTrue(logTransactionIds.contains(returnedLog.TransactionId__c));
+    }
   }
 
   @IsTest
