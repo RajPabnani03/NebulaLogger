@@ -33,6 +33,10 @@ public without sharing class SlackLoggerPlugin implements LoggerPlugin.Triggerab
   @TestVisible
   private static final String NOTIFICATION_TITLE = 'Salesforce Log Alert';
 
+  // One platform-event save inserts the log and then updates it (rollup summaries),
+  // and each of those trigger operations would otherwise enqueue its own job.
+  private static Set<Id> transactionEnqueuedLogIds = new Set<Id>();
+
   private List<Log__c> logs;
 
   /**
@@ -135,8 +139,14 @@ public without sharing class SlackLoggerPlugin implements LoggerPlugin.Triggerab
   private void sendAsyncSlackNotifications() {
     List<Log__c> logsToSend = new List<Log__c>();
     for (Log__c log : this.logs) {
-      if (log.SendSlackNotification__c) {
+      // SlackNotificationDate__c is set after a notification is sent. The update that
+      // stamps the date re-fires this trigger. Skip logs that were already sent, and
+      // skip logs already enqueued earlier in this transaction.
+      if (log.SendSlackNotification__c == true && log.SlackNotificationDate__c == null && transactionEnqueuedLogIds.contains(log.Id) == false) {
         logsToSend.add(log);
+        if (log.Id != null) {
+          transactionEnqueuedLogIds.add(log.Id);
+        }
       }
     }
     // Since plugins are called from trigger handlers, and triggers can't make callouts

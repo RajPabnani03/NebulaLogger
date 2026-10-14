@@ -67,6 +67,45 @@ private class SlackLoggerPlugin_Tests {
   }
 
   @IsTest
+  static void it_should_enqueue_slack_notification_only_once_per_transaction() {
+    System.LoggingLevel logEntryLoggingLevel = System.LoggingLevel.ERROR;
+    LoggerPlugin__mdt pluginConfiguration = mockConfigurations(logEntryLoggingLevel);
+    List<Log__c> logs = insertLogAndLogEntry(logEntryLoggingLevel, true);
+    LoggerTriggerableContext context = mockContext(System.TriggerOperation.AFTER_UPDATE, logs);
+    LoggerMockDataCreator.MockHttpCallout calloutMock = LoggerMockDataCreator.createHttpCallout().setStatusCode(200);
+    System.Test.setMock(System.HttpCalloutMock.class, calloutMock);
+
+    System.Test.startTest();
+    SlackLoggerPlugin plugin = new SlackLoggerPlugin();
+    plugin.execute(pluginConfiguration, context);
+    plugin.execute(pluginConfiguration, context);
+    System.Assert.areEqual(1, System.Limits.getAsyncCalls(), 'The same log should only enqueue one Slack notification per transaction');
+    System.Test.stopTest();
+
+    System.Assert.isNotNull(calloutMock.request, 'The single enqueued job should still send the Slack notification');
+  }
+
+  @IsTest
+  static void it_should_not_enqueue_slack_notification_when_notification_was_already_sent() {
+    System.LoggingLevel logEntryLoggingLevel = System.LoggingLevel.ERROR;
+    LoggerPlugin__mdt pluginConfiguration = mockConfigurations(logEntryLoggingLevel);
+    List<Log__c> logs = insertLogAndLogEntry(logEntryLoggingLevel, true);
+    logs.get(0).SlackNotificationDate__c = System.now();
+    update logs;
+    LoggerTriggerableContext context = mockContext(System.TriggerOperation.AFTER_UPDATE, logs);
+    LoggerMockDataCreator.MockHttpCallout calloutMock = LoggerMockDataCreator.createHttpCallout().setStatusCode(200);
+    System.Test.setMock(System.HttpCalloutMock.class, calloutMock);
+
+    System.Test.startTest();
+    SlackLoggerPlugin plugin = new SlackLoggerPlugin();
+    plugin.execute(pluginConfiguration, context);
+    System.Assert.areEqual(0, System.Limits.getAsyncCalls(), 'A Slack notification should not be enqueued when SlackNotificationDate__c is already populated');
+    System.Test.stopTest();
+
+    System.Assert.isNull(calloutMock.request, 'A Slack callout should not be sent for a log that was already notified');
+  }
+
+  @IsTest
   static void it_should_send_slack_notification_for_log_when_logging_level_is_met_for_error() {
     System.LoggingLevel logEntryLoggingLevel = System.LoggingLevel.ERROR;
     LoggerPlugin__mdt pluginConfiguration = mockConfigurations(logEntryLoggingLevel);
