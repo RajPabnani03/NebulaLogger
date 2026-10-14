@@ -431,19 +431,37 @@ public class LoggerMockDataCreator {
    * @return   The generated `Schema.User` record - it is not automatically inserted into the database.
    */
   public static Schema.User createUser(Id profileId) {
-    String uniqueString = Logger.getTransactionId() + (userMockUsernameCount++) + '@test.com';
+    String uniqueSuffix = Logger.getTransactionId() + userMockUsernameCount++;
+    String username = uniqueSuffix + '@test.com';
     return new Schema.User(
       Alias = 'user_xyz',
-      Email = 'user_xyz@test.com.net.org',
+      Email = buildMockUserEmail(uniqueSuffix),
       EmailEncodingKey = 'ISO-8859-1',
-      FederationIdentifier = uniqueString + '.sso',
+      FederationIdentifier = username + '.sso',
       LanguageLocaleKey = 'en_US',
       LastName = 'Test Userson',
       LocaleSidKey = 'en_US',
       ProfileId = profileId,
       TimeZoneSidKey = 'America/Los_Angeles',
-      Username = uniqueString
+      Username = username
     );
+  }
+
+  // Orgs can restrict User.Email to an allowlist. The running user's domain is already
+  // permitted, so mock users can be inserted there. Username stays on @test.com.
+  private static String buildMockUserEmail(String uniqueSuffix) {
+    String domain = System.UserInfo.getUserEmail()?.substringAfter('@');
+    if (String.isBlank(domain)) {
+      domain = 'example.com';
+    }
+
+    // Schema.User.Email is limited to 80 characters.
+    Integer maxLocalPartLength = 80 - domain.length() - 1;
+    String localPart = uniqueSuffix;
+    if (maxLocalPartLength > 0 && localPart.length() > maxLocalPartLength) {
+      localPart = localPart.right(maxLocalPartLength);
+    }
+    return localPart + '@' + domain;
   }
 
   /**
