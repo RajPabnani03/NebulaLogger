@@ -296,7 +296,7 @@ public without sharing virtual class LogManagementDataSelector {
    * @return                The list of matching `Log__c` records
    */
   public virtual List<Log__c> getLogsByTransactionId(List<String> transactionIds) {
-    return [SELECT Id, TransactionId__c FROM Log__c WHERE TransactionId__c IN :transactionIds];
+    return [SELECT Id, OwnerId, TransactionId__c FROM Log__c WHERE TransactionId__c IN :transactionIds];
   }
 
   /**
