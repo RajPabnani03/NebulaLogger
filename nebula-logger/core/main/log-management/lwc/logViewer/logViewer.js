@@ -106,13 +106,20 @@ export default class LogViewer extends LightningElement {
 
   async downloadFile() {
     const exportedFilename = this.log.Name + '_' + this.log[LOG_ORGANIZATION_ID_FIELD.fieldApiName] + '.' + this.currentMode.extension;
-    const encodedValue = encodeURIComponent(this.currentMode.data);
-
+    const mimeType = this.currentMode.extension === 'json' ? 'application/json;charset=utf-8' : 'text/plain;charset=utf-8';
+    // Lightning Web Security blocks data:, javascript:, and vbscript: hrefs.
+    // A blob: URL is the supported way to download generated file content.
+    const blob = new Blob([this.currentMode.data], { type: mimeType });
+    const blobUrl = URL.createObjectURL(blob);
     const link = window.document.createElement('a');
-    link.href = 'data:text;charset=utf-8,' + encodedValue;
-    link.target = '_blank';
-    link.download = exportedFilename;
-    link.click();
+
+    try {
+      link.setAttribute('href', blobUrl);
+      link.setAttribute('download', exportedFilename);
+      link.click();
+    } finally {
+      URL.revokeObjectURL(blobUrl);
+    }
   }
 
   _loadLogFileContent() {
