@@ -431,10 +431,13 @@ public class LoggerMockDataCreator {
    * @return   The generated `Schema.User` record - it is not automatically inserted into the database.
    */
   public static Schema.User createUser(Id profileId) {
-    String uniqueString = Logger.getTransactionId() + (userMockUsernameCount++) + '@test.com';
+    // Use the IANA-reserved example.com domain (RFC 2606) for the email address, so orgs that
+    // restrict allowed email domains don't reject the mock user - see issue #1006
+    String uniqueLocalPart = Logger.getTransactionId() + (userMockUsernameCount++);
+    String uniqueString = uniqueLocalPart + '@test.com';
     return new Schema.User(
       Alias = 'user_xyz',
-      Email = 'user_xyz@test.com.net.org',
+      Email = uniqueLocalPart + '@example.com',
       EmailEncodingKey = 'ISO-8859-1',
       FederationIdentifier = uniqueString + '.sso',
       LanguageLocaleKey = 'en_US',
