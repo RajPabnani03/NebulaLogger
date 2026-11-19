@@ -20,6 +20,9 @@ public without sharing class LogEntryEventHandler extends LoggerSObjectHandler {
   private static final Map<String, Log__c> TRANSACTION_ID_TO_LOG = new Map<String, Log__c>();
 
   @TestVisible
+  private static Boolean allowStatusApiCalloutInTests = false;
+
+  @TestVisible
   private static final List<LogEntryTagRule__mdt> TAG_ASSIGNMENT_RULES {
     get {
       if (TAG_ASSIGNMENT_RULES == null) {
@@ -243,6 +246,7 @@ public without sharing class LogEntryEventHandler extends LoggerSObjectHandler {
     String apexClassName = LogEntryEventHandler.class.getName();
     List<String> jobStatuses = new List<String>{ 'Holding', 'Queued', 'Preparing', 'Processing' };
     if (
+      (System.Test.isRunningTest() == false || allowStatusApiCalloutInTests) &&
       LoggerParameter.CALL_STATUS_API &&
       recentLogWithApiReleaseDetails == null &&
       LogManagementDataSelector.getInstance().getCountOfAsyncApexJobs(apexClassName, null, jobStatuses) == 0

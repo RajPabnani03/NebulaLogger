@@ -12650,6 +12650,8 @@ private class Logger_Tests {
     LoggerDataStore.setMock(LoggerMockDataStore.getEventBus());
     LoggerParameter.setMock(new LoggerParameter__mdt(DeveloperName = 'CallStatusApi', Value__c = System.JSON.serialize(true)));
     LoggerParameter.setMock(new LoggerParameter__mdt(DeveloperName = 'EnableLoggerSystemMessages', Value__c = System.JSON.serialize(true)));
+    LoggerParameter.setMock(new LoggerParameter__mdt(DeveloperName = 'RequireScenarioUsage', Value__c = System.JSON.serialize(true)));
+    Logger.setScenario(null);
     System.Assert.isTrue(LoggerParameter.CALL_STATUS_API);
     String mockErrorMessage = 'It broke! 😥';
     Integer errorStatusCode = 404;
@@ -12663,10 +12665,13 @@ private class Logger_Tests {
     Logger.StatusApiResponse returnedApiResponse = Logger.callStatusApi();
 
     System.Assert.isNull(returnedApiResponse);
+    System.Assert.isNull(Logger.getScenario());
     Logger.saveLog();
     System.Assert.areEqual(2, LoggerMockDataStore.getEventBus().getPublishedPlatformEvents().size());
     LogEntryEvent__e logEntryEvent = (LogEntryEvent__e) LoggerMockDataStore.getEventBus().getPublishedPlatformEvents().get(0);
     System.Assert.areEqual('Nebula Logger - Callout to api.status.salesforce.com failed', logEntryEvent.Message__c);
+    System.Assert.areEqual('Nebula Logger', logEntryEvent.EntryScenario__c);
+    System.Assert.isNull(logEntryEvent.TransactionScenario__c);
     System.Assert.areEqual('System.CalloutException', logEntryEvent.ExceptionType__c);
     Schema.Organization organization = LoggerEngineDataSelector.getInstance().getCachedOrganization();
     String expectedExceptionMessage =

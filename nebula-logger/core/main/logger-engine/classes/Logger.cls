@@ -22,6 +22,7 @@ global with sharing class Logger {
   private static final String ORGANIZATION_DOMAIN_URL = System.URL.getOrgDomainUrl()?.toExternalForm();
   private static final String REQUEST_ID = System.Request.getCurrent()?.getRequestId();
   private static final Map<String, SaveMethod> SAVE_METHOD_NAME_TO_SAVE_METHOD = new Map<String, SaveMethod>();
+  private static final String SYSTEM_MESSAGE_SCENARIO = 'Nebula Logger';
   private static final Map<Schema.SObjectField, Object> TRANSACTION_FIELD_TO_VALUE = new Map<Schema.SObjectField, Object>();
   private static final String TRANSACTION_ID = System.UUID.randomUUID().toString();
 
@@ -4060,14 +4061,14 @@ global with sharing class Logger {
 
     if (suspendSaving) {
       if (LoggerParameter.ENABLE_SYSTEM_MESSAGES) {
-        finest(getSuspendSavingLogSystemMessage());
+        newSystemMessage(getSuspendSavingLogSystemMessage());
       }
 
       return;
     }
 
     if (LoggerParameter.ENABLE_SYSTEM_MESSAGES) {
-      finest(getSavingLogSystemMessage(saveMethodName));
+      newSystemMessage(getSavingLogSystemMessage(saveMethodName));
     }
 
     List<LogEntryEvent__e> logEntryEvents = new List<LogEntryEvent__e>();
@@ -4181,7 +4182,7 @@ global with sharing class Logger {
       return statusApiResponse;
     } catch (Exception ex) {
       if (LoggerParameter.ENABLE_SYSTEM_MESSAGES) {
-        finest('Nebula Logger - Callout to api.status.salesforce.com failed').setExceptionDetails(ex);
+        newSystemMessage('Nebula Logger - Callout to api.status.salesforce.com failed').setExceptionDetails(ex);
       }
       return null;
     }
@@ -4221,14 +4222,23 @@ global with sharing class Logger {
   }
 
   private static LogEntryEventBuilder newEntry(System.LoggingLevel loggingLevel, Boolean shouldSave) {
+    return newEntry(loggingLevel, shouldSave, currentEntryScenario);
+  }
+
+  private static LogEntryEventBuilder newSystemMessage(String message) {
+    String entryScenario = LoggerParameter.REQUIRE_SCENARIO_USAGE && String.isBlank(currentEntryScenario) ? SYSTEM_MESSAGE_SCENARIO : currentEntryScenario;
+    return newEntry(System.LoggingLevel.FINEST, isEnabled(System.LoggingLevel.FINEST), entryScenario).setMessage(message);
+  }
+
+  private static LogEntryEventBuilder newEntry(System.LoggingLevel loggingLevel, Boolean shouldSave, String entryScenario) {
     LogEntryEventBuilder logEntryEventBuilder = new LogEntryEventBuilder(getUserSettings(), loggingLevel, shouldSave)
       // Don't include the logging system's classes in the stack trace
       .parseStackTrace(new System.DmlException().getStackTraceString().replaceAll('(' + String.join(CLASSES_TO_IGNORE, '|') + ')\\..+?column 1', '').trim());
     if (logEntryEventBuilder.shouldSave()) {
-      if (LoggerParameter.REQUIRE_SCENARIO_USAGE && String.isBlank(currentEntryScenario)) {
+      if (LoggerParameter.REQUIRE_SCENARIO_USAGE && String.isBlank(entryScenario)) {
         throw new LoggerException(MISSING_SCENARIO_ERROR_MESSAGE);
       }
-      LOGGING_CONTEXT.currentEntryScenario = currentEntryScenario;
+      LOGGING_CONTEXT.currentEntryScenario = entryScenario;
       LOGGING_CONTEXT.entryNumber++;
       LOGGING_CONTEXT.userLoggingLevel = userLoggingLevel;
       logEntryEventBuilder.setLoggingContext(LOGGING_CONTEXT);
