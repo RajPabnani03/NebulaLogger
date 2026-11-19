@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <assignments>
+        <name>CaptureOperation</name>
+        <label>Capture Operation</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>receivedOperation</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>triggerOperationType</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <interviewLabel>Mock Logger Trigger Record Plugin {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Mock Logger Trigger Record Plugin</label>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>CaptureOperation</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>receivedOperation</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <name>triggerNew</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>true</isInput>
+        <isOutput>true</isOutput>
+        <objectType>Log__c</objectType>
+    </variables>
+    <variables>
+        <name>triggerOld</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>true</isInput>
+        <isOutput>true</isOutput>
+        <objectType>Log__c</objectType>
+    </variables>
+    <variables>
+        <name>triggerOperationType</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>
