@@ -188,28 +188,20 @@ private class LogHandler_Tests {
     );
     log = [SELECT Id, HasOrganizationLimits__c, OrganizationLimits__c FROM Log__c WHERE Id = :log.Id];
     System.Assert.isTrue(log.HasOrganizationLimits__c);
-    Map<String, LogHandler.SerializableOrganizationLimit> limitNameToExpectedOrganizationLimits = new Map<String, LogHandler.SerializableOrganizationLimit>();
-    List<String> sortedSystemOrgLimitNames = new List<String>(System.OrgLimits.getMap().keySet());
-    sortedSystemOrgLimitNames.sort();
-    for (String systemOrgLimitName : sortedSystemOrgLimitNames) {
-      System.OrgLimit systemOrgLimit = System.OrgLimits.getMap().get(systemOrgLimitName);
-      LogHandler.SerializableOrganizationLimit organizationLimit = new LogHandler.SerializableOrganizationLimit();
-      organizationLimit.Name = systemOrgLimit.getName();
-      organizationLimit.Used = systemOrgLimit.getValue();
-      organizationLimit.Max = systemOrgLimit.getLimit();
-      limitNameToExpectedOrganizationLimits.put(organizationLimit.Name, organizationLimit);
+    Map<String, System.OrgLimit> expectedOrganizationLimits = new Map<String, System.OrgLimit>();
+    for (System.OrgLimit systemOrgLimit : System.OrgLimits.getMap().values()) {
+      expectedOrganizationLimits.put(systemOrgLimit.getName(), systemOrgLimit);
     }
     List<LogHandler.SerializableOrganizationLimit> returnedOrganizationLimits = (List<LogHandler.SerializableOrganizationLimit>) System.JSON.deserialize(
       log.OrganizationLimits__c,
       List<LogHandler.SerializableOrganizationLimit>.class
     );
-    System.Assert.areEqual(limitNameToExpectedOrganizationLimits.size(), returnedOrganizationLimits.size());
+    System.Assert.areEqual(expectedOrganizationLimits.size(), returnedOrganizationLimits.size());
     for (LogHandler.SerializableOrganizationLimit returnedOrganizationLimit : returnedOrganizationLimits) {
-      LogHandler.SerializableOrganizationLimit expectedOrganizationLimit = limitNameToExpectedOrganizationLimits.get(returnedOrganizationLimit.Name);
-      // Some limits are recalculated, even during a single transaction,
-      // so ensure that the expected limit's Used value is at least higher than the returned limit's Used value
-      System.Assert.isTrue(expectedOrganizationLimit.Used >= returnedOrganizationLimit.Used);
-      System.Assert.areEqual(expectedOrganizationLimit.Max, returnedOrganizationLimit.Max);
+      System.OrgLimit expectedOrganizationLimit = expectedOrganizationLimits.get(returnedOrganizationLimit.Name);
+      System.Assert.isNotNull(expectedOrganizationLimit, 'Unexpected organization limit: ' + returnedOrganizationLimit.Name);
+      System.Assert.isNotNull(returnedOrganizationLimit.Used, 'Missing usage for organization limit: ' + returnedOrganizationLimit.Name);
+      System.Assert.areEqual(expectedOrganizationLimit.getLimit(), returnedOrganizationLimit.Max);
     }
   }
 
