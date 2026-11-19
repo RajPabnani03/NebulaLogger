@@ -785,6 +785,7 @@ public class LoggerMockDataCreator {
 
     private void setUnpopulatedFieldsOnRecord(List<Schema.SObjectField> fields) {
       Map<String, Object> populatedFields = this.record.getPopulatedFieldsAsMap();
+      Map<String, List<Schema.DescribeFieldResult>> mappedPicklistFields = this.getMappedPicklistFields();
       for (Schema.SObjectField field : fields) {
         Schema.DescribeFieldResult fieldDescribe = field.getDescribe();
         if (fieldDescribe.isUpdateable() == false && fieldDescribe.isCustom() == false) {
@@ -807,6 +808,12 @@ public class LoggerMockDataCreator {
           // actually return null for their default value - this is known, in technical terms,
           // as "absolutely ridiculous", and I hate it. So, here's a silly extra null check for those fields.
           fieldValue = defaultValue == null ? true : !defaultValue;
+        } else if (
+          (fieldDescribe.getType() == Schema.DisplayType.String || fieldDescribe.getType() == Schema.DisplayType.TextArea) &&
+          mappedPicklistFields.containsKey(fieldDescribe.getName())
+        ) {
+          // A text source mapped to a picklist must use a value accepted by every target field.
+          fieldValue = this.getCommonPicklistValue(mappedPicklistFields.get(fieldDescribe.getName()));
         } else if (fieldDescribe.getDefaultValue() != null) {
           // If there is a default value setup for the field, use it
           fieldValue = fieldDescribe.getDefaultValue();
@@ -820,6 +827,68 @@ public class LoggerMockDataCreator {
           this.record.put(field, fieldValue);
         }
       }
+    }
+
+    private Map<String, List<Schema.DescribeFieldResult>> getMappedPicklistFields() {
+      Map<String, List<Schema.DescribeFieldResult>> mappedPicklistFields = new Map<String, List<Schema.DescribeFieldResult>>();
+      if (this.sobjectType != Schema.LogEntryEvent__e.SObjectType) {
+        return mappedPicklistFields;
+      }
+
+      Map<String, Schema.SObjectType> sobjectTypes = Schema.getGlobalDescribe();
+      for (LoggerFieldMapping__mdt mapping : LoggerConfigurationSelector.getInstance().getLoggerFieldMappings()) {
+        if (
+          !mapping.IsEnabled__c ||
+          mapping.SourceSObjectType__c != String.valueOf(this.sobjectType) ||
+          !sobjectTypes.containsKey(mapping.TargetSObjectType__c)
+        ) {
+          continue;
+        }
+
+        Schema.SObjectField targetField = sobjectTypes.get(mapping.TargetSObjectType__c).getDescribe().fields.getMap().get(mapping.TargetField__c);
+        if (targetField == null) {
+          continue;
+        }
+
+        Schema.DescribeFieldResult targetDescribe = targetField.getDescribe();
+        if (targetDescribe.getType() != Schema.DisplayType.Picklist && targetDescribe.getType() != Schema.DisplayType.MultiPicklist) {
+          continue;
+        }
+
+        if (!mappedPicklistFields.containsKey(mapping.SourceField__c)) {
+          mappedPicklistFields.put(mapping.SourceField__c, new List<Schema.DescribeFieldResult>());
+        }
+        mappedPicklistFields.get(mapping.SourceField__c).add(targetDescribe);
+      }
+      return mappedPicklistFields;
+    }
+
+    private String getCommonPicklistValue(List<Schema.DescribeFieldResult> fields) {
+      for (Schema.PicklistEntry candidate : fields.get(0).getPicklistValues()) {
+        if (!candidate.isActive()) {
+          continue;
+        }
+
+        Boolean isValidForAllFields = true;
+        for (Schema.DescribeFieldResult field : fields) {
+          Boolean isValidForField = false;
+          for (Schema.PicklistEntry entry : field.getPicklistValues()) {
+            if (entry.isActive() && entry.getValue() == candidate.getValue()) {
+              isValidForField = true;
+              break;
+            }
+          }
+          if (!isValidForField) {
+            isValidForAllFields = false;
+            break;
+          }
+        }
+        if (isValidForAllFields) {
+          return candidate.getValue();
+        }
+      }
+      // No value can be safely mapped to every target picklist.
+      return null;
     }
 
     @SuppressWarnings('PMD.NcssCount')
@@ -866,7 +935,7 @@ public class LoggerMockDataCreator {
           return 1234567890L;
         }
         when MultiPicklist {
-          return fieldDescribe.getPicklistValues().get(0).getValue();
+          return this.getCommonPicklistValue(new List<Schema.DescribeFieldResult>{ fieldDescribe });
         }
         when Percent {
           return (0.42).setScale(fieldDescribe.getScale());
@@ -875,7 +944,7 @@ public class LoggerMockDataCreator {
           return '+34 999 11 22 33';
         }
         when Picklist {
-          return fieldDescribe.getPicklistValues().get(0).getValue();
+          return this.getCommonPicklistValue(new List<Schema.DescribeFieldResult>{ fieldDescribe });
         }
         when String {
           return this.getStringValue(fieldDescribe);

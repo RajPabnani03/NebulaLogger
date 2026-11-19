@@ -43,6 +43,7 @@ private class LogEntryEventHandler_Tests_FieldMappings {
       )
     );
     LogEntryEvent__e logEntryEvent = createLogEntryEvent();
+    System.Assert.areEqual('First Value', logEntryEvent.SomeRestrictedPicklistField__c, 'Mapped text should use a valid restricted picklist value');
     logEntryEvent.SomeLoggerScenarioField__c = 'Some value to map to LoggerScenario__c.SomeLoggerScenarioField__c';
     logEntryEvent.SomeLogField__c = 'Some value to map to Log__c.SomeLogField__c';
     logEntryEvent.SomeLogEntryField__c = 'Some value to map to LogEntry__c.SomeLogEntryField__c';
@@ -62,10 +63,11 @@ private class LogEntryEventHandler_Tests_FieldMappings {
     for (LoggerScenario__c loggerScenario : loggerScenarios) {
       System.Assert.areEqual(logEntryEvent.SomeLoggerScenarioField__c, loggerScenario.SomeLoggerScenarioField__c);
     }
-    Log__c log = [SELECT Id, SomeLogField__c, (SELECT SomeLogEntryField__c FROM LogEntries__r) FROM Log__c];
+    Log__c log = [SELECT Id, SomeLogField__c, (SELECT SomeLogEntryField__c, SomeRestrictedPicklistField__c FROM LogEntries__r) FROM Log__c];
     LogEntry__c logEntry = log.LogEntries__r.get(0);
     System.Assert.areEqual(logEntryEvent.SomeLogField__c, log.SomeLogField__c);
     System.Assert.areEqual(logEntryEvent.SomeLogEntryField__c, logEntry.SomeLogEntryField__c);
+    System.Assert.areEqual(logEntryEvent.SomeRestrictedPicklistField__c, logEntry.SomeRestrictedPicklistField__c);
   }
 
   private static LogEntryEvent__e createLogEntryEvent() {
@@ -88,10 +90,6 @@ private class LogEntryEventHandler_Tests_FieldMappings {
     logEntryEvent.UserLoggingLevel__c = System.LoggingLevel.INFO.name();
     logEntryEvent.UserLoggingLevelOrdinal__c = System.LoggingLevel.INFO.ordinal();
     logEntryEvent = (LogEntryEvent__e) LoggerMockDataCreator.setReadOnlyField(logEntryEvent, Schema.LogEntryEvent__e.EventUuid, System.UUID.randomUUID());
-
-    // This is an extra set of fields used only in the pipeline for testing field mappings from a text field to a restricted picklist value.
-    // Since it's a restricted picklist value, on LogEntry__c (not LogEntryEvent__e), we have to handle this one a little bit differently here in the test.
-    logEntryEvent.SomeRestrictedPicklistField__c = LogEntry__c.SomeRestrictedPicklistField__c.getDescribe().getPicklistValues().get(0).getValue();
 
     return logEntryEvent;
   }
