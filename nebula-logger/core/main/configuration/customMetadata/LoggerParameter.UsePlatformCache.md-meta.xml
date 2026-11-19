@@ -10,7 +10,9 @@
         <field>Description__c</field>
         <value xsi:type="xsd:string">When set to &apos;true&apos; (default), Nebula Logger will used Platform Cache to cache organization and session data in the cache partition LoggerCache.
 
-When set to &apos;false&apos;, any cached data is only cached within a single transaction.</value>
+When set to &apos;false&apos;, any cached data is only cached within a single transaction.
+
+If Platform Cache itself fails in your org (for example, a System.UnexpectedException &apos;Salesforce System Error&apos; thrown from LoggerCache), set this to &apos;false&apos;. Nebula Logger then stops calling isAvailable(), contains(), get(), put() and remove() on the cache partitions and uses only the transaction cache. Platform internal errors cannot be reliably caught in Apex, so this setting is the supported workaround.</value>
     </values>
     <values>
         <field>Value__c</field>
