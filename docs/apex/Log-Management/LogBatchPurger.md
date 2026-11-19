@@ -8,6 +8,8 @@ Batch class used to delete old logs, based on `Log__c.LogRetentionDate__c &lt;= 
 
 ### Related
 
+Each job selects at most `LoggerParameter.LogBatchPurgerQueryLimit` records (default `1000000`), independently of its batch size. Child jobs continue chaining until no eligible child records remain, then process a limited set of logs. Remaining logs are picked up by the next scheduled or manual run. Retention filters and oldest-first ordering are unchanged.
+
 [LogBatchPurgeScheduler](LogBatchPurgeScheduler)
 
 ---

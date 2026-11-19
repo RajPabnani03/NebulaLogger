@@ -442,6 +442,17 @@ private class CMDT_LoggerParameter_Tests {
     System.Assert.areEqual('[]', bundledRecord.Value__c);
   }
 
+  @IsTest
+  static void it_has_correct_record_for_log_batch_purger_query_limit() {
+    LoggerParameter__mdt bundledRecord = LoggerParameter__mdt.getInstance('LogBatchPurgerQueryLimit');
+
+    System.Assert.isNotNull(bundledRecord, 'Record is missing');
+    System.Assert.isNull(bundledRecord.Comments__c, 'Comments should be null/blank');
+    System.Assert.isNotNull(bundledRecord.Description__c, 'Description is missing');
+    System.Assert.areEqual('Log Batch Purger: Query Limit', bundledRecord.Label);
+    System.Assert.areEqual('1000000', bundledRecord.Value__c);
+  }
+
   /*
 // LoggerParameter__mdt checks
 // The field LoggerParameter__mdt.Description__c is a long textarea field, so it can't be marked as required - but every record

@@ -167,6 +167,41 @@ private class LoggerParameter_Tests {
   }
 
   @IsTest
+  static void it_should_return_configured_purge_query_limit() {
+    LoggerParameter.setMock(new LoggerParameter__mdt(DeveloperName = 'LogBatchPurgerQueryLimit', Value__c = '2'));
+    System.Assert.areEqual(2, LoggerParameter.LOG_BATCH_PURGER_QUERY_LIMIT);
+  }
+
+  @IsTest
+  static void it_should_default_missing_purge_query_limit() {
+    System.Assert.areEqual(1000000, LoggerParameter.LOG_BATCH_PURGER_QUERY_LIMIT);
+  }
+
+  @IsTest
+  static void it_should_default_null_purge_query_limit() {
+    LoggerParameter.setMock(new LoggerParameter__mdt(DeveloperName = 'LogBatchPurgerQueryLimit'));
+    System.Assert.areEqual(1000000, LoggerParameter.LOG_BATCH_PURGER_QUERY_LIMIT);
+  }
+
+  @IsTest
+  static void it_should_default_zero_purge_query_limit() {
+    LoggerParameter.setMock(new LoggerParameter__mdt(DeveloperName = 'LogBatchPurgerQueryLimit', Value__c = '0'));
+    System.Assert.areEqual(1000000, LoggerParameter.LOG_BATCH_PURGER_QUERY_LIMIT);
+  }
+
+  @IsTest
+  static void it_should_default_negative_purge_query_limit() {
+    LoggerParameter.setMock(new LoggerParameter__mdt(DeveloperName = 'LogBatchPurgerQueryLimit', Value__c = '-1'));
+    System.Assert.areEqual(1000000, LoggerParameter.LOG_BATCH_PURGER_QUERY_LIMIT);
+  }
+
+  @IsTest
+  static void it_should_default_excessive_purge_query_limit() {
+    LoggerParameter.setMock(new LoggerParameter__mdt(DeveloperName = 'LogBatchPurgerQueryLimit', Value__c = '50000001'));
+    System.Assert.areEqual(1000000, LoggerParameter.LOG_BATCH_PURGER_QUERY_LIMIT);
+  }
+
+  @IsTest
   static void it_should_return_constant_value_for_normalize_scenario_data() {
     Boolean mockValue = false;
     LoggerParameter__mdt mockParameter = new LoggerParameter__mdt(DeveloperName = 'NormalizeScenarioData', Value__c = System.JSON.serialize(mockValue));

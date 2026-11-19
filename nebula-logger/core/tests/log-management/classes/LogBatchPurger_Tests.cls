@@ -54,6 +54,44 @@ private class LogBatchPurger_Tests {
   }
 
   @IsTest
+  static void it_should_bound_each_object_query_and_purge_remaining_records_on_later_runs() {
+    LoggerSObjectHandler.shouldExecute(false);
+    LoggerTestConfigurator.setupMockSObjectHandlerConfigurations();
+    LoggerParameter.setMock(new LoggerParameter__mdt(DeveloperName = 'LogBatchPurgerQueryLimit', Value__c = '2'));
+    List<Log__c> emptyLogs = new List<Log__c>{ new Log__c(TransactionId__c = 'empty-1'), new Log__c(TransactionId__c = 'empty-2') };
+    insert emptyLogs;
+    List<Schema.SObjectType> expectedTypes = new List<Schema.SObjectType>{
+      Schema.LogEntryTag__c.SObjectType,
+      Schema.LogEntryTag__c.SObjectType,
+      Schema.LogEntry__c.SObjectType,
+      Schema.LogEntry__c.SObjectType,
+      Schema.Log__c.SObjectType,
+      Schema.Log__c.SObjectType,
+      Schema.Log__c.SObjectType
+    };
+    List<Integer> expectedCounts = new List<Integer>{ 2, 1, 2, 1, 2, 1, 0 };
+    Database.BatchableContext mockContext = new LoggerMockDataCreator.MockBatchableContext();
+
+    for (Integer i = 0; i < expectedTypes.size(); i++) {
+      LogBatchPurger batchJobInstance = new LogBatchPurger();
+      Database.QueryLocatorIterator records = batchJobInstance.start(mockContext).iterator();
+      List<SObject> scopeRecords = new List<SObject>();
+      while (records.hasNext()) {
+        scopeRecords.add(records.next());
+      }
+      System.Assert.areEqual(expectedTypes.get(i), batchJobInstance.currentSObjectType);
+      System.Assert.areEqual(expectedCounts.get(i), scopeRecords.size());
+      if (!scopeRecords.isEmpty()) {
+        batchJobInstance.execute(mockContext, scopeRecords);
+      }
+    }
+
+    System.Assert.areEqual(0, [SELECT COUNT() FROM LogEntryTag__c]);
+    System.Assert.areEqual(0, [SELECT COUNT() FROM LogEntry__c]);
+    System.Assert.areEqual(0, [SELECT COUNT() FROM Log__c]);
+  }
+
+  @IsTest
   static void it_returns_configured_logger_parameter_value_for_the_default_batch_size() {
     Integer mockValue = 1234;
     LoggerParameter__mdt mockParameter = new LoggerParameter__mdt(
