@@ -65,6 +65,42 @@ private class LoggerMockDataCreator_Tests {
   }
 
   @IsTest
+  static void it_uses_an_active_value_for_an_unmapped_picklist() {
+    Account record = (Account) LoggerMockDataCreator.createDataBuilder(Schema.Account.SObjectType).populateAllFields().getRecord();
+    Set<String> activeValues = new Set<String>();
+    for (Schema.PicklistEntry entry : Schema.Account.Industry.getDescribe().getPicklistValues()) {
+      if (entry.isActive()) {
+        activeValues.add(entry.getValue());
+      }
+    }
+
+    if (activeValues.isEmpty()) {
+      System.Assert.isNull(record.Industry);
+    } else {
+      System.Assert.isTrue(activeValues.contains(record.Industry));
+    }
+  }
+
+  @IsTest
+  static void it_preserves_an_explicitly_populated_mapped_field() {
+    LoggerConfigurationSelector.mockLoggerFieldMappings.add(
+      new LoggerFieldMapping__mdt(
+        DeveloperName = 'MappedPicklist',
+        IsEnabled__c = true,
+        SourceSObjectType__c = Schema.LogEntryEvent__e.SObjectType.toString(),
+        SourceField__c = Schema.LogEntryEvent__e.Message__c.toString(),
+        TargetSObjectType__c = Schema.Log__c.SObjectType.toString(),
+        TargetField__c = Schema.Log__c.Priority__c.toString()
+      )
+    );
+    LogEntryEvent__e event = new LogEntryEvent__e(Message__c = 'Explicit test value');
+
+    LoggerMockDataCreator.createDataBuilder(event).populateAllFields();
+
+    System.Assert.areEqual('Explicit test value', event.Message__c);
+  }
+
+  @IsTest
   static void it_preserves_generated_text_when_there_is_no_picklist_mapping() {
     LogEntryEvent__e event = (LogEntryEvent__e) LoggerMockDataCreator.createDataBuilder(Schema.LogEntryEvent__e.SObjectType).populateAllFields().getRecord();
 
