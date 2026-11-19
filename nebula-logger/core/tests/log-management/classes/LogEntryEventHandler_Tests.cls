@@ -1184,7 +1184,31 @@ private class LogEntryEventHandler_Tests {
   }
 
   @IsTest
+  static void it_should_not_enqueue_a_status_api_callout_in_unrelated_tests() {
+    LoggerDataStore.setMock(LoggerMockDataStore.getEventBus());
+    LoggerDataStore.setMock(LoggerMockDataStore.getJobQueue());
+    LoggerTestConfigurator.setupMockSObjectHandlerConfigurations();
+    LoggerTestConfigurator.getSObjectHandlerConfiguration(Schema.Log__c.SObjectType).IsEnabled__c = false;
+    LoggerTestConfigurator.getSObjectHandlerConfiguration(Schema.LogEntry__c.SObjectType).IsEnabled__c = false;
+    LoggerParameter.setMock(new LoggerParameter__mdt(DeveloperName = 'CallStatusApi', Value__c = 'true'));
+    System.Assert.isTrue(LoggerParameter.CALL_STATUS_API);
+    System.Assert.isNull(LogManagementDataSelector.getInstance().getCachedRecentLogWithApiReleaseDetails());
+    System.Assert.areEqual(
+      0,
+      LogManagementDataSelector.getInstance()
+        .getCountOfAsyncApexJobs(LogEntryEventHandler.class.getName(), null, new List<String>{ 'Holding', 'Queued', 'Preparing', 'Processing' })
+    );
+
+    LoggerDataStore.getEventBus().publishRecord(createLogEntryEvent());
+    LoggerMockDataStore.getEventBus().deliver(new LogEntryEventHandler());
+
+    System.Assert.areEqual(1, [SELECT COUNT() FROM Log__c]);
+    System.Assert.areEqual(0, LoggerMockDataStore.getJobQueue().getEnqueuedJobs().size());
+  }
+
+  @IsTest
   static void it_should_set_api_release_number_and_api_release_version_from_callout_when_enabled() {
+    LogEntryEventHandler.allowStatusApiCalloutInTests = true;
     LoggerDataStore.setMock(LoggerMockDataStore.getEventBus());
     LoggerTestConfigurator.setupMockSObjectHandlerConfigurations();
     LoggerTestConfigurator.getSObjectHandlerConfiguration(Schema.Log__c.SObjectType).IsEnabled__c = false;
@@ -1227,6 +1251,7 @@ private class LogEntryEventHandler_Tests {
 
   @IsTest
   static void it_should_set_api_release_number_and_api_release_version_from_recent_record() {
+    LogEntryEventHandler.allowStatusApiCalloutInTests = true;
     LoggerDataStore.setMock(LoggerMockDataStore.getEventBus());
     LoggerTestConfigurator.setupMockSObjectHandlerConfigurations();
     LoggerTestConfigurator.getSObjectHandlerConfiguration(Schema.Log__c.SObjectType).IsEnabled__c = false;
@@ -1272,6 +1297,7 @@ private class LogEntryEventHandler_Tests {
 
   @IsTest
   static void it_should_not_set_api_release_number_or_api_release_version_from_callout_when_disabled() {
+    LogEntryEventHandler.allowStatusApiCalloutInTests = true;
     LoggerDataStore.setMock(LoggerMockDataStore.getEventBus());
     LoggerTestConfigurator.setupMockSObjectHandlerConfigurations();
     LoggerTestConfigurator.getSObjectHandlerConfiguration(Schema.Log__c.SObjectType).IsEnabled__c = false;
@@ -1313,6 +1339,7 @@ private class LogEntryEventHandler_Tests {
 
   @IsTest
   static void it_should_skip_setting_api_release_number_and_api_release_version_when_callout_fails() {
+    LogEntryEventHandler.allowStatusApiCalloutInTests = true;
     LoggerDataStore.setMock(LoggerMockDataStore.getEventBus());
     LoggerTestConfigurator.setupMockSObjectHandlerConfigurations();
     LoggerTestConfigurator.getSObjectHandlerConfiguration(Schema.Log__c.SObjectType).IsEnabled__c = false;
