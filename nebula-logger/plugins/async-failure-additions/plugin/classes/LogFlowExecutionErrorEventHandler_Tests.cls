@@ -3,7 +3,7 @@
 // See LICENSE file or go to https://github.com/jongpie/NebulaLogger for full license details.    //
 //------------------------------------------------------------------------------------------------//
 @SuppressWarnings('PMD.ApexDoc, PMD.MethodNamingConventions')
-@IsTest(IsParallel=true)
+@IsTest(IsParallel=false)
 private class LogFlowExecutionErrorEventHandler_Tests {
   @IsTest
   static void it_does_not_log_when_plugin_parameter_disabled() {
@@ -26,7 +26,13 @@ private class LogFlowExecutionErrorEventHandler_Tests {
     flowExecutionErrorEvent.FlowVersionNumber = 1;
     flowExecutionErrorEvent.Username = System.UserInfo.getUsername();
 
-    System.runAs(new Schema.User(Id = [SELECT Id FROM User WHERE Alias = 'autoproc'].Id)) {
+    // Platform event subscribers run as a different user than the one who ran the flow, so the handler
+    // should use the event's Username instead of the context user. Some orgs don't have an Automated
+    // Process user that can be queried, so a separate test user is used as the context user instead.
+    Schema.User eventSubscriberUser = LoggerMockDataCreator.createUser();
+    insert eventSubscriberUser;
+
+    System.runAs(eventSubscriberUser) {
       System.Test.startTest();
       LogFlowExecutionErrorEventHandler.logErrors(new List<Schema.FlowExecutionErrorEvent>{ flowExecutionErrorEvent });
       System.Test.stopTest();
@@ -91,10 +97,10 @@ private class LogFlowExecutionErrorEventHandler_Tests {
       WHERE Id = :System.UserInfo.getUserId()
     ];
     Log__c log = entry.Log__r;
-    System.Assert.areEqual(currentUser.Id, log.LoggedBy__c, 'Should not use autoproc user Id');
+    System.Assert.areEqual(currentUser.Id, log.LoggedBy__c, 'Should not use event subscriber user Id');
     System.Assert.areEqual(currentUser.Username, log.LoggedByUsername__c, 'Username should match');
-    System.Assert.areEqual(currentUser.ProfileId, log.ProfileId__c, 'Should not use autoproc user ProfileId');
-    System.Assert.areEqual(currentUser.Profile.Name, log.ProfileName__c, 'Should not use autoproc user Profile name');
+    System.Assert.areEqual(currentUser.ProfileId, log.ProfileId__c, 'Should not use event subscriber user ProfileId');
+    System.Assert.areEqual(currentUser.Profile.Name, log.ProfileName__c, 'Should use flow user Profile name');
     System.Assert.isNull(log.LoginApplication__c, 'LoginApplication__c should have been cleared');
     System.Assert.isNull(log.LoginBrowser__c, 'LoginBrowser__c should have been cleared');
     System.Assert.isNull(log.LoginHistoryId__c, 'LoginHistoryId__c should have been cleared');
