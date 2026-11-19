@@ -282,6 +282,46 @@ private class FlowLogEntry_Tests {
   }
 
   @IsTest
+  static void it_should_not_set_record_fields_when_recordId_is_null() {
+    LoggerDataStore.setMock(LoggerMockDataStore.getEventBus());
+    Logger.getUserSettings().LoggingLevel__c = System.LoggingLevel.FINEST.name();
+    LoggerTestConfigurator.setupMockSObjectHandlerConfigurations();
+    FlowLogEntry flowEntry = createFlowLogEntry();
+    flowEntry.loggingLevelName = System.LoggingLevel.DEBUG.name();
+    flowEntry.recordId = null;
+
+    FlowLogEntry.addFlowEntries(new List<FlowLogEntry>{ flowEntry });
+    System.Assert.areEqual(1, Logger.getBufferSize());
+    Logger.saveLog();
+
+    System.Assert.areEqual(1, LoggerMockDataStore.getEventBus().getPublishedPlatformEvents().size());
+    LogEntryEvent__e publishedLogEntryEvent = (LogEntryEvent__e) LoggerMockDataStore.getEventBus().getPublishedPlatformEvents().get(0);
+    System.Assert.isNull(publishedLogEntryEvent.RecordId__c);
+    System.Assert.isNull(publishedLogEntryEvent.RecordCollectionType__c);
+    System.Assert.isNull(publishedLogEntryEvent.RecordSObjectType__c);
+  }
+
+  @IsTest
+  static void it_should_set_record_fields_when_recordId_is_provided() {
+    LoggerDataStore.setMock(LoggerMockDataStore.getEventBus());
+    Logger.getUserSettings().LoggingLevel__c = System.LoggingLevel.FINEST.name();
+    LoggerTestConfigurator.setupMockSObjectHandlerConfigurations();
+    FlowLogEntry flowEntry = createFlowLogEntry();
+    flowEntry.loggingLevelName = System.LoggingLevel.DEBUG.name();
+    flowEntry.recordId = System.UserInfo.getUserId();
+
+    FlowLogEntry.addFlowEntries(new List<FlowLogEntry>{ flowEntry });
+    System.Assert.areEqual(1, Logger.getBufferSize());
+    Logger.saveLog();
+
+    System.Assert.areEqual(1, LoggerMockDataStore.getEventBus().getPublishedPlatformEvents().size());
+    LogEntryEvent__e publishedLogEntryEvent = (LogEntryEvent__e) LoggerMockDataStore.getEventBus().getPublishedPlatformEvents().get(0);
+    System.Assert.areEqual(flowEntry.recordId, publishedLogEntryEvent.RecordId__c);
+    System.Assert.areEqual('Single', publishedLogEntryEvent.RecordCollectionType__c);
+    System.Assert.areEqual(Schema.User.SObjectType.toString(), publishedLogEntryEvent.RecordSObjectType__c);
+  }
+
+  @IsTest
   static void it_should_add_tags_to_log_entry() {
     LoggerDataStore.setMock(LoggerMockDataStore.getEventBus());
     System.LoggingLevel userLoggingLevel = System.LoggingLevel.FINEST;
