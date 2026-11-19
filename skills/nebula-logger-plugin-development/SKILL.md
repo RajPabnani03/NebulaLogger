@@ -22,7 +22,7 @@ Nebula Logger's plugin framework lets you register Apex classes to run inside tw
 
 Both extension points are driven by `LoggerPlugin__mdt` records. Adding a plugin means: writing an Apex class that implements the right interface (or both, if the plugin has trigger and batch responsibilities), then creating a `LoggerPlugin__mdt` record that points at it.
 
-**Strongly prefer Apex over Flow for both extension points.** The framework technically supports Flow-based plugins via `SObjectHandlerFlowName__c` / `BatchPurgerFlowName__c`, but Flow support currently has known issues with no fixed ETA - it may be deprecated altogether in a future release. New plugins should implement the Apex interfaces below and leave the Flow fields on the `LoggerPlugin__mdt` record blank.
+**Prefer Apex for plugins that need the full trigger or batch context.** For an autolaunched Flow that consumes trigger records from one object, see the [custom plugin framework setup](../../README.md#beta-feature-custom-plugin-framework-for-log__c-and-logentry__c-objects). Batch Flow plugins still use `BatchPurgerFlowName__c` and have known limitations.
 
 ## The Two Interfaces
 
@@ -60,7 +60,8 @@ Every plugin gets one `LoggerPlugin__mdt` record. Key fields:
 | `DeveloperName` / `Label`                         | Identify the plugin.                                                                                                    |
 | `IsEnabled__c`                                    | Toggle without deleting the record. Marked as `SubscriberControlled` so admins can flip it in installed orgs.           |
 | `SObjectHandlerApexClass__c`                      | Apex class name implementing `LoggerPlugin.Triggerable`. Set this to register the class at the trigger extension point. |
-| `SObjectHandlerFlowName__c`                       | Flow API name for a Flow-based trigger plugin. Leave null - see the "prefer Apex" note above.                           |
+| `SObjectHandlerFlowName__c`                       | Flow API name for a Flow-based trigger plugin. Leave null for Apex-only plugins.                                        |
+| `SObjectHandlerFlowObjectApiName__c`              | Optional object API name (such as `Log__c`) that scopes the trigger Flow and enables direct record collection inputs.   |
 | `SObjectHandlerExecutionOrder__c`                 | Integer that orders multiple plugins on the same handler. Lower numbers run first. Ties are broken by developer name.   |
 | `BatchPurgerApexClass__c`                         | Apex class name implementing `LoggerPlugin.Batchable`. Set this to register the class at the batch extension point.     |
 | `BatchPurgerFlowName__c`                          | Flow API name for a Flow-based batch plugin. Leave null - see the "prefer Apex" note above.                             |

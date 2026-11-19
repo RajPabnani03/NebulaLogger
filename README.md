@@ -815,11 +815,12 @@ Two Apex classes are provided out-of-the-box to handle automatically deleting ol
 
 If you want to add your own automation to the `Log__c` or `LogEntry__c` objects, you can leverage Apex or Flow to define "plugins" - the logger system will then automatically run the plugins after each trigger event (BEFORE_INSERT, BEFORE_UPDATE, AFTER_INSERT, AFTER_UPDATE, and so on). This framework makes it easy to build your own plugins, or deploy/install others' prebuilt packages, without having to modify the logging system directly.
 
-- Flow plugins: your Flow should be built as auto-launched Flows with these parameters:
-  1. `Input` parameter `triggerOperationType` - The name of the current trigger operation (such as BEFORE_INSERT, BEFORE_UPDATE, etc.)
-  2. `Input` parameter `triggerNew` - The list of logger records being processed (`Log__c` or `LogEntry__c` records)
-  3. `Output` parameter `updatedTriggerNew` - If your Flow makes any updates to the collection of records, you should return a record collection containing the updated records
-  4. `Input` parameter `triggerOld` - The list of logger records as they exist in the datatabase
+- Flow plugins (unlocked package): Set **SObject Handler Flow Name** to your autolaunched Flow's API name and **SObject Handler Flow Object API Name** to the object used by its record collections (for example, `Log__c` or `LogEntry__c`). On the Flow, mark these variables as **Available for input**:
+  1. `triggerOperationType` (Text) - the current operation, such as `AFTER_INSERT` or `BEFORE_UPDATE`. For a notification on creation, use a Decision to proceed only on `AFTER_INSERT`.
+  2. `triggerNew` (Record collection) - the current records, when available. Use the same object as on the plugin configuration.
+  3. `triggerOld` (Record collection) - the previous versions on update or delete. Use the same object as on the plugin configuration.
+
+  Existing Flows that use the Apex-defined `pluginInput` and `pluginConfiguration` inputs should leave **SObject Handler Flow Object API Name** blank to keep receiving those inputs.
 
 - Apex plugins: your Apex class should implements `LoggerPlugin.Triggerable`. For example:
 

@@ -193,16 +193,30 @@ public without sharing abstract class LoggerSObjectHandler {
   }
 
   private void executeFlowPlugin(LoggerPlugin__mdt configuration) {
+    String flowObjectApiName = configuration.SObjectHandlerFlowObjectApiName__c?.trim();
+    Boolean usesRecordInputs = String.isNotBlank(flowObjectApiName);
+    if (usesRecordInputs && flowObjectApiName != this.input.sobjectTypeName) {
+      return;
+    }
+
     try {
       Map<String, Object> flowInputs = new Map<String, Object>();
-      flowInputs.put(FLOW_PLUGIN_CONFIGURATION_INPUT_NAME, configuration);
-      flowInputs.put(FLOW_PLUGIN_INPUT_NAME, this.input);
+      if (usesRecordInputs) {
+        // Flow record collections are bound to one concrete SObject type.
+        System.Type recordListType = System.Type.forName('List<' + this.input.sobjectTypeName + '>');
+        flowInputs.put('triggerOperationType', this.input.triggerOperationTypeName);
+        flowInputs.put('triggerNew', toFlowRecordCollection(recordListType, this.input.triggerNew));
+        flowInputs.put('triggerOld', toFlowRecordCollection(recordListType, this.input.triggerOldMap?.values()));
+      } else {
+        flowInputs.put(FLOW_PLUGIN_CONFIGURATION_INPUT_NAME, configuration);
+        flowInputs.put(FLOW_PLUGIN_INPUT_NAME, this.input);
+      }
 
       Flow.Interview flowPlugin = Flow.Interview.createInterview(configuration.SObjectHandlerFlowName__c, flowInputs);
       flowPlugin.start();
 
       List<SObject> updatedTriggerNew = (List<SObject>) flowPlugin.getVariableValue('updatedTriggerNew');
-      if (updatedTriggerNew != null && updatedTriggerNew.size() == this.input.triggerNew.size()) {
+      if (updatedTriggerNew != null && this.input.triggerNew != null && updatedTriggerNew.size() == this.input.triggerNew.size()) {
         this.input.triggerNew.clear();
         this.input.triggerNew.addAll(updatedTriggerNew);
         if (this.input.triggerNewMap != null) {
@@ -218,6 +232,15 @@ public without sharing abstract class LoggerSObjectHandler {
         Logger.warn('Nebula Logger - Unknown Flow ' + configuration.SObjectHandlerFlowName__c + ', skipping plugin execution', configuration, ex);
       }
     }
+  }
+
+  private static List<SObject> toFlowRecordCollection(System.Type recordListType, List<SObject> records) {
+    if (records == null) {
+      return null;
+    }
+    List<SObject> typedRecords = (List<SObject>) recordListType.newInstance();
+    typedRecords.addAll(records);
+    return typedRecords;
   }
 
   // Instance test helper methods, used for unit tests
