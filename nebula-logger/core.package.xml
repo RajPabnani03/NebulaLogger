@@ -756,6 +756,7 @@
         <members>LoggerParameter.EnableTagging</members>
         <members>LoggerParameter.IgnoredApexOrigins</members>
         <members>LoggerParameter.LogBatchPurgerDefaultBatchSize</members>
+        <members>LoggerParameter.LogBatchPurgerQueryLimit</members>
         <members>LoggerParameter.LogEntryEventStreamDisplayFields</members>
         <members>LoggerParameter.NormalizeScenarioData</members>
         <members>LoggerParameter.NormalizeTagData</members>

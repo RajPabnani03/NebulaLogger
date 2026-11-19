@@ -172,6 +172,22 @@ public class LoggerParameter {
   }
 
   /**
+   * @description Maximum records selected per `LogBatchPurger` job. Remaining records are processed by chained jobs or later runs.
+   *              Controlled by `LoggerParameter.LogBatchPurgerQueryLimit`, or `1000000` as the default.
+   *              Values outside the range 1 through 50000000 use the default.
+   */
+  public static final Integer LOG_BATCH_PURGER_QUERY_LIMIT {
+    get {
+      if (LOG_BATCH_PURGER_QUERY_LIMIT == null) {
+        Integer configuredValue = getInteger('LogBatchPurgerQueryLimit', 1000000);
+        LOG_BATCH_PURGER_QUERY_LIMIT = configuredValue > 0 && configuredValue <= 50000000 ? configuredValue : 1000000;
+      }
+      return LOG_BATCH_PURGER_QUERY_LIMIT;
+    }
+    private set;
+  }
+
+  /**
    * @description Indicates if Nebula Logger will store scenarios in the custom object `LoggerScenario__c`,
    *              or in the fields `Log__c.TransactionScenarioName__c` & `LogEntry__c.EntryScenario__c`.
    *              Controlled by the custom metadata record `LoggerParameter.NormalizeScenarioData`, or `true` as the default
