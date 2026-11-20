@@ -305,28 +305,6 @@ public without sharing class SlackLoggerPlugin implements LoggerPlugin.Triggerab
     return notificationFields;
   }
 
-  private String createTagsField(Log__c log) {
-    // TODO Add Scenario__c field
-    // TODO Possible include to LogEntryTag__c (tag names)
-    // TODO bulkify! this is a query within a query
-    List<String> tagNames = new List<String>();
-    List<LoggerTag__c> tags = [
-      SELECT UniqueId__c
-      FROM LoggerTag__c
-      WHERE Id IN (SELECT Tag__c FROM LogEntryTag__c WHERE LogEntry__r.Log__c = :log.Id)
-      ORDER BY UniqueId__c
-    ];
-
-    if (tagNames.isEmpty()) {
-      return null;
-    }
-
-    for (LoggerTag__c tag : tags) {
-      tagNames.add('`' + tag.UniqueId__c + '`');
-    }
-    return String.join(tagNames, ' ');
-  }
-
   // Private DTO classes that match Slack's API
   @TestVisible
   private class NotificationDto {
