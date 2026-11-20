@@ -20,7 +20,7 @@ The most robust observability solution for Salesforce experts. Built 100% native
 
 [![Install Managed Package in a Sandbox](./images/btn-install-managed-package-sandbox.png)](https://test.salesforce.com/packaging/installPackage.apexp?mgd=true&p0=04tg7000000GZbJAAW)
 [![Install Managed Package in Production](./images/btn-install-managed-package-production.png)](https://login.salesforce.com/packaging/installPackage.apexp?mgd=true&p0=04tg7000000GZbJAAW)
-[![View Milestone](./images/btn-view-managed-package-milestone.png)](https://github.com/jongpie/NebulaLogger/milestone/16?closed=1)
+[![View Milestone](./images/btn-view-managed-package-milestone.png)](https://github.com/jongpie/NebulaLogger/milestone/19?closed=1)
 
 `sf package install --wait 30 --security-type AdminsOnly --package 04tg7000000GZbJAAW`
 
@@ -213,6 +213,13 @@ For OmniStudio builders, the included Apex class `CallableLogger` provides acces
 ## Features for Apex Developers
 
 Within Apex, there are several different methods that you can use that provide greater control over the logging system.
+
+### Database Errors, Stack Traces, and Data Masking
+
+- `Logger.logDatabaseErrors()` has overloads that accept the corresponding `List<SObject>` alongside database results, so failed operations can include their source records. See the [Apex API reference](./docs/apex/Logger-Engine/Logger.md) for the supported result types and signatures.
+- To exclude wrapper or framework classes from parsed stack traces and origin detection, configure `LoggerParameter.IgnoredApexOrigins` with a JSON array of Apex class names (default `[]`), for example `["MyLoggingWrapper"]`. For transaction-scoped exclusions, use `Logger.ignoreOrigin(System.Type)`.
+- Data masking processes long strings in overlapping chunks to avoid `System.LimitException: Regex too complicated`. `LoggerParameter.DataMaskRegExChunkSize` defaults to `4000` characters and `LoggerParameter.DataMaskRegExOverlapSize` defaults to `20`. For custom masking rules, the overlap must cover the longest value a rule can match, and the chunk size must exceed the overlap plus that match length. See [LoggerParameter](./docs/apex/Configuration/LoggerParameter.md) for configuration details.
+- When `LoggerParameter.StoreTransactionLimits` is enabled, captured transaction limits include Apex cursor fetch calls, cursor rows and cursor counts, plus Apex pagination cursor rows and counts.
 
 ### Transaction Controls
 
@@ -537,6 +544,8 @@ Within Flow (and Process Builder), there are 4 invocable actions that you can us
 
 ![Flow Builder: Logging Invocable Actions](./images/flow-builder-logging-invocable-actions.png)
 
+The optional 'Save Log' and 'Throw FlowException for Fault Error Message' inputs only take effect when explicitly set to `true`. Leaving either input unset (including when Flow passes `null`) is supported and is treated as `false`.
+
 ---
 
 ## Tagging Your Log Entries
@@ -755,6 +764,8 @@ To help development and support teams better manage logs (and any underlying cod
 
 Everyone loves JSON - so to make it easy to see a JSON version of a `Log__c` record, you can use the 'View JSON' quick action button. It displays the current `Log__c` + all related `LogEntry__c` records in JSON format, as well as a handy button to copy the JSON to your clipboard. All fields that the current user can view (based on field-level security) are dynamically returned, including any custom fields added directly in your org or by plugins.
 
+When embedding `c/logViewer` in a custom component, pass the log's ID using `recordId` (`record-id` in markup). The deprecated `logId` (`log-id`) input remains supported as a fallback when `recordId` is not set; when both are provided, `recordId` takes precedence.
+
 ![View JSON Log QuickAction Button](./images/view-json-log-quickaction-btn.png)
 
 ![View JSON Log QuickAction](./images/view-json-log-quickaction.png)
@@ -773,8 +784,9 @@ Within Logger Console app, the Log Entry Event Stream tab provides real-time mon
 
 Within App Builder, admins can add the 'Related Log Entries' lightning web component (lwc) to any record page. Admins can also control which columns are displayed be creating & selecting a field set on `LogEntry__c` with the desired fields.
 
-- The component automatically shows any related log entries, based on `LogEntry__c.RecordId__c == :recordId`
-- Users can search the list of log entries for a particular record using the component's built-insearch box. The component dynamically searches all related log entries using SOSL.
+- The component uses SOSL to find the current record's ID in searchable log entry fields. Strict search is enabled by default, so returned entries must also match `LogEntry__c.RecordId__c == :recordId`. The Apex controller's `shouldEnableStrictSearch` parameter can disable this additional filter for custom callers; it is not an App Builder setting.
+- Users can further filter the list using the component's built-in search box. The title's count reflects the returned rows, subject to the configured maximum number of log entries, rather than the total number of related entries.
+- The `LogEntry__c.WasLoggedByCurrentUser__c` formula checkbox is available for filtering entries by whether their parent log was logged by the current user.
 - Component automatically enforces Salesforce's security model
   - Object-Level Security - Users without read access to `LogEntry__c` will not see the component
   - Record-Level Security - Users will only see records that have been shared with them
@@ -808,6 +820,8 @@ Two Apex classes are provided out-of-the-box to handle automatically deleting ol
    - By default, this field is populated with "TODAY + 14 DAYS" - the number of days to retain a log can be customized in `LoggerSettings__c`.
    - Admins can also manually edit this field to change the retention date - or set it to null to prevent the log from being automatically deleted
 2. `LogBatchPurgeScheduler` - this schedulable Apex class can be schedule to run `LogBatchPurger` on a daily or weekly basis
+
+The default batch size is controlled by `LoggerParameter.LogBatchPurgerDefaultBatchSize` (default `500`). The scheduler's no-argument constructor uses this value; use `new LogBatchPurgeScheduler(batchSize)` to override it for a scheduled job.
 
 ---
 

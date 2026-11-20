@@ -16,7 +16,7 @@ Schedulable class used to schedule the batch job `LogBatchPurger`
 
 #### `LogBatchPurgeScheduler()`
 
-Default constructor. Sets initial batch size to 200.
+Default constructor. Uses `LogBatchPurger.getDefaultBatchSize()`, controlled by the custom metadata record `LoggerParameter.LogBatchPurgerDefaultBatchSize`, or `500` as the default.
 
 #### `LogBatchPurgeScheduler(Integer batchSize)`
 
