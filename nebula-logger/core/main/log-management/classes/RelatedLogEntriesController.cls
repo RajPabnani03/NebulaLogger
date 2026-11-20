@@ -9,7 +9,6 @@
  */
 @SuppressWarnings('PMD.ExcessivePublicCount')
 public with sharing class RelatedLogEntriesController {
-  private static final Schema.SObjectType LOG_SOBJECT_TYPE = Schema.Log__c.SObjectType;
   private static final Schema.SObjectType LOG_ENTRY_SOBJECT_TYPE = Schema.LogEntry__c.SObjectType;
   private static final String DEFAULT_SORT_FIELD_NAME = String.valueOf(Schema.LogEntry__c.Timestamp__c);
   private static final String DEFAULT_SORT_DIRECTION = 'DESC';
