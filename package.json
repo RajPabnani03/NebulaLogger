@@ -88,7 +88,6 @@
     "@jongpie/sfdx-bummer-plugin": "0.0.20",
     "@salesforce-ux/slds-linter": "1.2.0",
     "@salesforce/cli": "2.134.1",
-    "@salesforce/eslint-config-lwc": "4.1.2",
     "@salesforce/sfdx-lwc-jest": "7.5.0",
     "@types/jest-when": "3.5.5",
     "esbuild": "^0.28.0",
