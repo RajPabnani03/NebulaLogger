@@ -17,7 +17,7 @@ global with sharing class LogBatchPurgeScheduler implements System.Schedulable {
   private Integer batchSize;
 
   /**
-   * @description Default constructor.  Sets initial batch size to 200.
+   * @description Default constructor. Uses `LogBatchPurger.getDefaultBatchSize()`, controlled by `LoggerParameter.LogBatchPurgerDefaultBatchSize` (default 500).
    */
   global LogBatchPurgeScheduler() {
     this(LogBatchPurger.getDefaultBatchSize());
