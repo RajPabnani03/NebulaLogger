@@ -44,7 +44,7 @@ Indicates if Nebula Logger&apos;s tagging system is enabled. Controlled by the c
 
 #### `IGNORED_APEX_ORIGINS` → `List<String>`
 
-A list of Apex class names that should be ignored when parsing stack traces. Any stack trace lines containing these class names will be removed from the parsed stack trace. This is useful for filtering out utility or framework classes from stack traces. Controlled by the custom metadata record `LoggerParameter.IgnoredApexOrigins`, or an empty list as the default
+A list of Apex class names that should be ignored when parsing stack traces. Any stack trace lines containing these class names will be removed from the parsed stack trace. This is useful for filtering out utility or framework classes from stack traces. Controlled by the custom metadata record `LoggerParameter.IgnoredApexOrigins`, or an empty list as the default. Because the record is protected, it can only be configured in the unlocked package - managed package subscribers cannot view or modify it, so the managed package always uses the default empty list
 
 #### `LOG_BATCH_PURGER_DEFAULT_BATCH_SIZE` → `Integer`
 
