@@ -9,9 +9,9 @@
       "path": "./nebula-logger/core",
       "definitionFile": "./config/scratch-orgs/base-scratch-def.json",
       "scopeProfiles": true,
-      "versionNumber": "4.19.5.NEXT",
-      "versionName": "Fixed NullPointerException on Flow Logging Actions",
-      "versionDescription": "Fixed #997 NullPointerException that occurs when Flow passes a null value for the optional Save Log and Throw FlowException for Fault Error Message inputs, which happens now that Salesforce has removed the per-input include toggles from the Flow Builder action panel",
+      "versionNumber": "4.19.6.NEXT",
+      "versionName": "Added Descriptions to Flow Logging Action Inputs",
+      "versionDescription": "Fixed #967 by adding descriptions to the inputs of the Flow logging actions (FlowLogEntry, FlowRecordLogEntry and FlowCollectionLogEntry), so Flow Builder shows meaningful help text, including the valid values for Logging Level and Save Method",
       "postInstallUrl": "https://github.com/jongpie/NebulaLogger/wiki",
       "releaseNotesUrl": "https://github.com/jongpie/NebulaLogger/releases",
       "unpackagedMetadata": {
